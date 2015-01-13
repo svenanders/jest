@@ -27,7 +27,7 @@ var resolve = require('resolve');
 var utils = require('../lib/utils');
 
 var COVERAGE_STORAGE_VAR_NAME = '____JEST_COVERAGE_DATA____';
-
+var NODE_PATH = process.env.NODE_PATH;
 var IS_PATH_BASED_MODULE_NAME = /^(?:\.\.?\/|\/)/;
 
 var NODE_CORE_MODULES = {
@@ -483,14 +483,28 @@ Loader.prototype._nodeModuleNameToPath = function(currPath, moduleName) {
   }
 
   var resolveError = null;
+  var paths = [];
   try {
-    return resolve.sync(moduleName, {
-      basedir: path.dirname(currPath),
-      extensions: this._config.moduleFileExtensions
-        .map(function(ext){
-          return '.' + ext;
-        })
-    });
+    if (NODE_PATH) {
+     if (NODE_PATH.indexOf(process.cwd()) !== -1) {
+       paths.push(NODE_PATH);
+     }
+     else {
+       paths.push(process.cwd() + '/' + NODE_PATH);
+     }
+
+     return resolve.sync(moduleName, {
+       paths: paths,
+       basedir: path.dirname(currPath),
+       extensions: ['.js', '.json']
+     });
+   }
+   else {
+     return resolve.sync(moduleName, {
+       basedir: path.dirname(currPath),
+       extensions: ['.js', '.json']
+     });
+   }
   } catch (e) {
     // Facebook has clowny package.json resolution rules that don't apply to
     // regular Node rules. Until we can make ModuleLoaders more pluggable
